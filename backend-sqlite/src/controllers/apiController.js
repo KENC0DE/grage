@@ -872,8 +872,23 @@ exports.assignServiceRequest = asyncHandler(async (req, res) => {
  * @route   GET /api/service-requests/:id/nearby-garages
  * @access  Private
  */
+
+// Haversine formula to calculate distance between two lat-lon points in KM
+const getDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371; // Radius of the Earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 exports.findNearbyGarages = asyncHandler(async (req, res) => {
-  const { maxDistance = 10 } = req.query;
+  // Default to 25km if not provided
+  const { maxDistance = 25 } = req.query;
 
   const serviceRequest = await ServiceRequest.findByPk(req.params.id);
 
@@ -884,8 +899,16 @@ exports.findNearbyGarages = asyncHandler(async (req, res) => {
     });
   }
 
-  // Simple distance calculation (for more accuracy, use Haversine formula)
-  const nearbyGarages = await User.findAll({
+  const { locationLatitude: reqLat, locationLongitude: reqLon } = serviceRequest;
+
+  if (!reqLat || !reqLon) {
+      return res.status(400).json({
+          success: false,
+          message: 'Service request does not have a valid location.'
+      });
+  }
+
+  const allGarages = await User.findAll({
     where: {
       role: 'admin',
       isActive: true,
@@ -893,8 +916,20 @@ exports.findNearbyGarages = asyncHandler(async (req, res) => {
       garageLongitude: { [Op.ne]: null }
     },
     attributes: ['id', 'name', 'garageName', 'garageAddress', 'phone', 'email', 'serviceRadius', 'garageLatitude', 'garageLongitude'],
-    limit: 10
   });
+
+  const garagesWithDistance = allGarages.map(garage => {
+    const distance = getDistance(reqLat, reqLon, garage.garageLatitude, garage.garageLongitude);
+    return { ...garage.toJSON(), distance };
+  });
+
+  const nearbyGarages = garagesWithDistance
+    .filter(garage => 
+        // Check if garage is within user's maxDistance AND within its own service radius
+        garage.distance <= maxDistance && garage.distance <= garage.serviceRadius
+    )
+    .sort((a, b) => a.distance - b.distance);
+
 
   res.status(200).json({
     success: true,

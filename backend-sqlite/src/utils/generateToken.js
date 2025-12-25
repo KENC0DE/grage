@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 
 /**
  * Generate JWT token for user authentication
@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
  */
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '7d'
+    expiresIn: process.env.JWT_EXPIRE || "7d",
   });
 };
 
@@ -18,24 +18,24 @@ const generateToken = (id) => {
  * @param {object} res - Express response object
  * @param {string} message - Optional message
  */
-const sendTokenResponse = (user, statusCode, res, message = 'Success') => {
+const sendTokenResponse = (user, statusCode, res, message = "Success") => {
   // Generate token
-  const token = generateToken(user._id);
+  const token = generateToken(user.id);
 
   // Remove password from user object
-  const userResponse = user.toJSON ? user.toJSON() : user;
+  const userResponse = user.toSafeObject();
 
   res.status(statusCode).json({
     success: true,
     message,
     token,
     data: {
-      user: userResponse
-    }
+      user: userResponse,
+    },
   });
 };
 
 module.exports = {
   generateToken,
-  sendTokenResponse
+  sendTokenResponse,
 };
