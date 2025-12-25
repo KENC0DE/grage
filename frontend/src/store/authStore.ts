@@ -1,6 +1,7 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { authAPI, User } from '../lib/api';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { authAPI } from "../lib/api";
+import type { User } from "../lib/api";
 
 interface AuthState {
   user: User | null;
@@ -31,8 +32,8 @@ export const useAuthStore = create<AuthState>()(
           const response = await authAPI.login(email, password);
           const { token, data } = response;
 
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(data.user));
 
           set({
             user: data.user,
@@ -42,7 +43,7 @@ export const useAuthStore = create<AuthState>()(
             error: null,
           });
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || 'Login failed';
+          const errorMessage = error.response?.data?.message || "Login failed";
           set({ error: errorMessage, isLoading: false });
           throw error;
         }
@@ -54,8 +55,8 @@ export const useAuthStore = create<AuthState>()(
           const response = await authAPI.register(data);
           const { token, data: responseData } = response;
 
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(responseData.user));
+          localStorage.setItem("token", token);
+          localStorage.setItem("user", JSON.stringify(responseData.user));
 
           set({
             user: responseData.user,
@@ -65,7 +66,8 @@ export const useAuthStore = create<AuthState>()(
             error: null,
           });
         } catch (error: any) {
-          const errorMessage = error.response?.data?.message || 'Registration failed';
+          const errorMessage =
+            error.response?.data?.message || "Registration failed";
           set({ error: errorMessage, isLoading: false });
           throw error;
         }
@@ -73,8 +75,8 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         authAPI.logout().catch(() => {});
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
         set({
           user: null,
           token: null,
@@ -84,7 +86,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       updateUser: (user: User) => {
-        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem("user", JSON.stringify(user));
         set({ user });
       },
 
@@ -93,8 +95,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       checkAuth: async () => {
-        const token = localStorage.getItem('token');
-        const userStr = localStorage.getItem('user');
+        const token = localStorage.getItem("token");
+        const userStr = localStorage.getItem("user");
 
         if (token && userStr) {
           try {
@@ -109,7 +111,7 @@ export const useAuthStore = create<AuthState>()(
             const response = await authAPI.getMe();
             if (response.data?.user) {
               set({ user: response.data.user });
-              localStorage.setItem('user', JSON.stringify(response.data.user));
+              localStorage.setItem("user", JSON.stringify(response.data.user));
             }
           } catch (error) {
             // Token invalid, clear auth
@@ -119,12 +121,12 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
       partialize: (state) => ({
         user: state.user,
         token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
-    }
-  )
+    },
+  ),
 );
